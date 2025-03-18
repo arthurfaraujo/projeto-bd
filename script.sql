@@ -1,3 +1,11 @@
+-- Criação do banco de dados e das tabelas
+-- Essa parte é porque onde fui testar tinha que criar o banco
+CREATE DATABASE projeto;
+
+USE projeto;
+
+-- Criando as tabelas
+
 CREATE TABLE cliente (
 	  cpf CHAR(11) PRIMARY KEY,
 	  nome VARCHAR(45) NOT NULL,
@@ -16,7 +24,7 @@ CREATE TABLE funcionario (
 	  complemento VARCHAR(100),
 	  meta_vendas DECIMAL(20, 2),
 	  departamento VARCHAR(100),
-	  tipo CHAR(1) NOT NULL,
+	  tipo CHAR(1) NOT NULL DEFAULT 'F',
 	  CONSTRAINT check_tipo CHECK (
 		    (tipo = 'A' AND meta_vendas IS NOT NULL AND departamento IS NULL) OR 
 		    (tipo = 'G' AND departamento IS NOT NULL AND meta_vendas IS NULL) OR
@@ -105,3 +113,164 @@ CREATE TABLE pedido_produto (
 				ON UPDATE CASCADE,
 		PRIMARY KEY (codigo_produto, cpf_cliente_pedido, cpf_funcionario_pedido, data_pedido, hora_pedido)
 );
+
+-- Triggers
+
+DELIMITER $
+
+CREATE TRIGGER chk_gerente_gerenciado_in BEFORE INSERT
+ON gerenciado
+FOR EACH ROW
+BEGIN
+    IF NEW.cpf_gerenciado = NEW.cpf_gerente THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Erro: o gerente não pode ser o mesmo funcionário que o gerenciado';
+    END IF;
+END $
+
+CREATE TRIGGER chk_gerente_gerenciado_up BEFORE UPDATE
+ON gerenciado
+FOR EACH ROW
+BEGIN
+    IF NEW.cpf_gerenciado = NEW.cpf_gerente THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Erro: o gerente não pode ser o mesmo funcionário que o gerenciado';
+    END IF;
+END $
+
+DELIMITER ;
+
+-- Inserindo os dados
+-- Inserindo clientes
+INSERT INTO cliente (cpf, nome, email, sexo) VALUES
+('11122233344', 'Carlos Silva', 'carlos.silva@exemplo.com', 'M'),
+('22233344455', 'Ana Souza', 'ana.souza@exemplo.com', 'F'),
+('33344455566', 'João Pereira', 'joao.pereira@exemplo.com', 'M'),
+('44455566677', 'Maria Oliveira', 'maria.oliveira@exemplo.com', 'F'),
+('55566677788', 'Pedro Santos', 'pedro.santos@exemplo.com', 'M'),
+('66677788899', 'Fernanda Lima', 'fernanda.lima@exemplo.com', 'F'),
+('77788899900', 'Lucas Alves', 'lucas.alves@exemplo.com', 'M'),
+('88899900011', 'Juliana Costa', 'juliana.costa@exemplo.com', 'F'),
+('99900011122', 'Rafael Rodrigues', 'rafael.rodrigues@exemplo.com', 'M'),
+('00011122233', 'Beatriz Fernandes', 'beatriz.fernandes@exemplo.com', 'F');
+
+-- Inserindo funcionários
+-- Atendentes
+INSERT INTO funcionario (cpf, nome, rg, salario, numero, cep, complemento, meta_vendas, departamento, tipo) VALUES
+('12345678901', 'Alice Pereira', '100001', 2800.00, '001', '12345000', 'Apto 101', 1500.00, NULL, 'A'),
+('23456789012', 'Bruno Almeida', '100002', 2900.50, '002', '12345001', 'Casa', 1600.00, NULL, 'A'),
+('34567890123', 'Clara Martins', '100003', 2750.75, '003', '12345002', 'Apto 202', 1400.00, NULL, 'A'),
+('45678901234', 'Diego Ribeiro', '100004', 3000.00, '004', '12345003', 'Casa', 1550.00, NULL, 'A');
+
+-- Gerentes
+INSERT INTO funcionario (cpf, nome, rg, salario, numero, cep, complemento, meta_vendas, departamento, tipo) VALUES
+('98765432109', 'Fernanda Souza', '200001', 4500.00, '005', '22345000', 'Apto 301', NULL, 'Vendas', 'G'),
+('87654321098', 'Gabriel Lima', '200002', 4600.00, '006', '22345001', 'Casa', NULL, 'Operações', 'G'),
+('76543210987', 'Helder Costa', '200003', 4700.00, '007', '22345002', 'Suite 1', NULL, 'Logística', 'G'),
+('65432109876', 'Isabela Rodrigues', '200004', 4800.00, '008', '22345003', 'Apto 402', NULL, 'Compras', 'G');
+
+-- Funcionários Comuns
+INSERT INTO funcionario (cpf, nome, rg, salario, numero, cep, complemento, meta_vendas, departamento, tipo) VALUES
+('11223344556', 'Juliana Ferreira', '300001', 3200.00, '009', '32345000', 'Apto 501', NULL, NULL, 'F'),
+('22334455667', 'Marcos Ribeiro', '300002', 3300.00, '010', '32345001', 'Casa', NULL, NULL, 'F'),
+('33445566778', 'Natalia Gomes', '300003', 3100.00, '011', '32345002', 'Apto 502', NULL, NULL, 'F'),
+('44556677889', 'Otávio Silva', '300004', 3150.00, '012', '32345003', 'Casa', NULL, NULL, 'F');
+
+-- Inserindo produtos
+INSERT INTO produto (nome, data_validade, preco) VALUES
+('Arroz Tio João 5kg', '2025-12-31', 19.90),
+('Feijão Carioca 1kg', '2024-11-30', 7.50),
+('Óleo de Soja 900ml', '2025-06-15', 8.25),
+('Açúcar Refinado 1kg', '2024-08-10', 4.80),
+('Leite Integral 1L', '2023-10-20', 3.50),
+('Café Pilão 500g', '2024-03-30', 12.00),
+('Macarrão Espaguete 500g', '2025-01-15', 5.20),
+('Detergente Líquido 500ml', '2024-07-05', 2.99),
+('Sabonete Dove 90g', '2026-05-25', 1.99),
+('Shampoo Pantene 400ml', '2025-09-10', 10.50);
+
+-- Inserindo telefones p/ clientes
+INSERT INTO telefone_cliente (numero, cpf_cliente) VALUES
+('5511912345001', '11122233344'),
+('5511912345002', '22233344455'),
+('5511912345003', '33344455566'),
+('5511912345004', '44455566677'),
+('5511912345005', '55566677788'),
+('5511912345006', '66677788899'),
+('5511912345007', '77788899900'),
+('5511912345008', '88899900011'),
+('5511912345009', '99900011122'),
+('5511912345010', '00011122233');
+
+-- Inserindo telefones para funcionários
+INSERT INTO telefone_funcionario (numero, cpf_funcionario) VALUES
+('5511190000001', '12345678901'),
+('5511190000002', '12345678901'),
+('5511190000003', '23456789012'),
+('5511190000004', '34567890123'),
+('5511190000005', '45678901234'),
+('5511190000006', '98765432109'),
+('5511190000007', '87654321098'),
+('5511190000008', '76543210987'),
+('5511190000009', '65432109876'),
+('5511190000010', '11223344556'),
+('5511190000011', '22334455667'),
+('5511190000012', '33445566778'),
+('5511190000013', '44556677889'),
+('5511190000014', '44556677889');  -- Exemplo de funcionário com 2 telefones
+
+-- Inserindo relacionamentos de gerência
+INSERT INTO gerenciado (cpf_gerenciado, cpf_gerente) VALUES
+('12345678901', '98765432109'),
+('23456789012', '98765432109'),
+('34567890123', '98765432109'),
+('45678901234', '98765432109'),
+('98765432109', '87654321098'),
+('11223344556', '98765432109'),
+('22334455667', '98765432109'),
+('33445566778', '87654321098'),
+('76543210987', '65432109876'),
+('87654321098', '65432109876');
+   
+-- Inserindo pedidos
+INSERT INTO pedido (cpf_cliente, cpf_funcionario, data, hora, forma_pagamento, numero_serie, imposto) VALUES
+('11122233344', '12345678901', '2023-11-01', '08:30:00', 'C', '1001', 1.50),
+('22233344455', '23456789012', '2023-11-01', '09:00:00', 'D', '1002', 2.00),
+('33344455566', '34567890123', '2023-11-01', '09:30:00', 'P', '1003', 1.75),
+('44455566677', '45678901234', '2023-11-01', '10:00:00', 'G', '1004', 2.25),
+('55566677788', '12345678901', '2023-11-02', '11:00:00', 'B', '1005', 1.80),
+('66677788899', '23456789012', '2023-11-02', '11:30:00', 'C', '1006', 1.90),
+('77788899900', '34567890123', '2023-11-02', '12:00:00', 'D', '1007', 2.10),
+('88899900011', '45678901234', '2023-11-02', '12:30:00', 'P', '1008', 2.50),
+('99900011122', '12345678901', '2023-11-03', '13:00:00', 'G', '1009', 2.00),
+('00011122233', '23456789012', '2023-11-03', '13:30:00', 'B', '1010', 1.65);
+
+-- Inserindo cupons
+INSERT INTO cupom (cpf_cliente_pedido, cpf_funcionario_pedido, data_pedido, hora_pedido, valor) VALUES
+('11122233344', '12345678901', '2023-11-01', '08:30:00', 150.00),
+('22233344455', '23456789012', '2023-11-01', '09:00:00', 200.00),
+('33344455566', '34567890123', '2023-11-01', '09:30:00', 175.00),
+('44455566677', '45678901234', '2023-11-01', '10:00:00', 225.00),
+('55566677788', '12345678901', '2023-11-02', '11:00:00', 180.00),
+('66677788899', '23456789012', '2023-11-02', '11:30:00', 190.00),
+('77788899900', '34567890123', '2023-11-02', '12:00:00', 210.00),
+('88899900011', '45678901234', '2023-11-02', '12:30:00', 250.00),
+('99900011122', '12345678901', '2023-11-03', '13:00:00', 200.00),
+('00011122233', '23456789012', '2023-11-03', '13:30:00', 165.00);
+
+-- Inserindo relacionamentos de compra
+INSERT INTO pedido_produto (codigo_produto, cpf_cliente_pedido, cpf_funcionario_pedido, data_pedido, hora_pedido, quantidade) VALUES
+(1, '11122233344', '12345678901', '2023-11-01', '08:30:00', 2),
+(3, '11122233344', '12345678901', '2023-11-01', '08:30:00', 1),
+(2, '22233344455', '23456789012', '2023-11-01', '09:00:00', 1),
+(4, '33344455566', '34567890123', '2023-11-01', '09:30:00', 3),
+(5, '44455566677', '45678901234', '2023-11-01', '10:00:00', 2),
+(7, '44455566677', '45678901234', '2023-11-01', '10:00:00', 1),
+(6, '55566677788', '12345678901', '2023-11-02', '11:00:00', 1),
+(8, '66677788899', '23456789012', '2023-11-02', '11:30:00', 2),
+(9, '77788899900', '34567890123', '2023-11-02', '12:00:00', 1),
+(10, '77788899900', '34567890123', '2023-11-02', '12:00:00', 1),
+(1, '88899900011', '45678901234', '2023-11-02', '12:30:00', 2),
+(3, '99900011122', '12345678901', '2023-11-03', '13:00:00', 1),
+(2, '99900011122', '12345678901', '2023-11-03', '13:00:00', 2),
+(4, '00011122233', '23456789012', '2023-11-03', '13:30:00', 1);
